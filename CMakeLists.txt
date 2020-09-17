@@ -27,10 +27,7 @@ option(ENABLE_CCACHE "Use ccache" ON)
 find_program(CCACHE ccache)
 
 if (ENABLE_CCACHE)
-  message("HERE 1")
-  message(${CCACHE})
   if (CCACHE)
-    message("HERE 2")
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
   endif ()
 endif ()
@@ -121,7 +118,6 @@ if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
     "${CMAKE_BINARY_DIR}/conan.cmake")
 endif ()
 include(${CMAKE_BINARY_DIR}/conan.cmake)
-#include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
 #conan_add_remote(NAME bincrafters
 #  URL https://api.bintray.com/conan/bincrafters/public-conan)
@@ -147,6 +143,9 @@ conan_cmake_run(
 # Add subdirectories.
 # -------------------------------------------------------------------
 add_subdirectory(${SOURCES_DIR})
+
+enable_testing()
+add_subdirectory(${TESTS_DIR})
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
