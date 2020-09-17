@@ -23,12 +23,14 @@ project(
 # ---------------------------------------------------------
 # CCACHE
 # ---------------------------------------------------------
-option(USE_CCACHE "Use ccache" ON)
+option(ENABLE_CCACHE "Use ccache" ON)
+find_program(CCACHE ccache)
 
-if (USE_CCACHE)
-  find_program(CCACHE CCache)
-
+if (ENABLE_CCACHE)
+  message("HERE 1")
+  message(${CCACHE})
   if (CCACHE)
+    message("HERE 2")
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
   endif ()
 endif ()
@@ -78,10 +80,10 @@ set(LIBRARY_NAME "${CMAKE_PROJECT_NAME}")
 # ---------------------------------------------------------
 # CPP CHECK
 # ---------------------------------------------------------
-option(USE_CPPCHECK "Enable testing with cppcheck" FALSE)
+option(ENABLE_CPPCHECK "Enable testing with cppcheck" FALSE)
+find_program(CPPCHECK cppcheck)
+if (ENABLE_CPPCHECK)
 
-if (USE_CPPCHECK)
-  find_program(CPPCHECK cppcheck)
   if (CPPCHECK)
     set(CMAKE_CXX_CPPCHECK
       ${CPPCHECK}
@@ -93,6 +95,22 @@ if (USE_CPPCHECK)
   endif ()
 endif ()
 
+
+# ---------------------------------------------------------
+# CLANG TIDY
+# ---------------------------------------------------------
+option(ENABLE_CLANG_TIDY "Enable testing with clang-tidy" ON)
+
+find_program(CLANGTIDY clang-tidy)
+if(ENABLE_CLANG_TIDY)
+  if(CLANGTIDY)
+    set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY})
+  else()
+    message(SEND_ERROR "clang-tidy requested but executable not found")
+  endif()
+endif()
+# ---------------------------------------------------------
+
 # -------------------------------------------------------------------
 # CONAN
 # -------------------------------------------------------------------
@@ -103,7 +121,7 @@ if (NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
     "${CMAKE_BINARY_DIR}/conan.cmake")
 endif ()
 include(${CMAKE_BINARY_DIR}/conan.cmake)
-include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
+#include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
 #conan_add_remote(NAME bincrafters
 #  URL https://api.bintray.com/conan/bincrafters/public-conan)
@@ -124,8 +142,16 @@ conan_cmake_run(
 )
 # -------------------------------------------------------------------
 
-add_subdirectory(${SOURCES_DIR})
 
+# -------------------------------------------------------------------
+# Add subdirectories.
+# -------------------------------------------------------------------
+add_subdirectory(${SOURCES_DIR})
+# -------------------------------------------------------------------
+
+# -------------------------------------------------------------------
+# Prints command to use to change the varname which should be an option
+# -------------------------------------------------------------------
 function(message_change varname)
   if (${${varname}})
     set(negvar OFF)
@@ -134,6 +160,7 @@ function(message_change varname)
   endif ()
   message("  --> change with -D" ${varname} "=" ${negvar})
 endfunction()
+# -------------------------------------------------------------------
 
 
 # -------------------------------------------------------------------
@@ -145,12 +172,18 @@ message("###################################################")
 message("Build type:                       ${CMAKE_BUILD_TYPE}")
 message("Install prefix:                   ${CMAKE_INSTALL_PREFIX}")
 
-message("Use CCache:                       ${USE_CCACHE}")
-message_change(USE_CCACHE)
+message("Use CCache:                       ${ENABLE_CCACHE}")
+message_change(ENABLE_CCACHE)
 message("CCache executable:                ${CCACHE}")
 
-message("Use CPPCheck:                     ${USE_CPPCHECK}")
-message_change(USE_CPPCHECK)
+message("Use CPPCheck:                     ${ENABLE_CPPCHECK}")
+message_change(ENABLE_CPPCHECK)
+message("CPPCheck executable:              ${CPPCHECK}")
+
+message("Use ClangTidy:                    ${ENABLE_CLANG_TIDY}")
+message_change(ENABLE_CLANG_TIDY)
+message("ClangTidy executable:             ${CLANGTIDY}")
+
 
 message("###################################################")
 message("Using C++ standard:               ${CMAKE_CXX_STANDARD}")
