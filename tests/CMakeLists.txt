@@ -21,3 +21,5 @@ add_test(
   NAME ${TARGET_NAME}
   COMMAND ${TARGET_NAME}
 )
+
+target_compile_options(${TARGET_NAME} PUBLIC ${COMPILER_FLAGS})

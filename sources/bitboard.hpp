@@ -1,12 +1,261 @@
-#include <cstdlib>
+#pragma once
+
 #include <bitset>
+#include <cassert>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <exception>
+#include <iomanip>
+#include <iostream>
+#include <optional>
+#include <sstream>
+#include <string>
 
 namespace slchess {
 
-template<size_t files_, size_t ranks_>
+/**
+ * Representation of the bitboards file.
+ *
+ * The constructor is not implicit, so you have to use `File(1)` for every call,
+ * as there is no implicit conversion from int.
+ *
+ * There is an automated conversion the other side, from the File to the size_t.
+ *
+ * There is also an operator for literals: `12_f` which created `File(12)`.
+ */
+class File {
+ protected:
+  size_t value;  ///< File value
+
+ public:
+  explicit File(size_t value) : value(value){};
+  [[nodiscard]] operator size_t() const { return value; }
+};
+
+/**
+ * Operator for custom literals like: `12_f`.
+ *
+ * @param n File value.
+ * @return A File object.
+ */
+File operator"" _f(unsigned long long int n) { return File(n); }
+
+class Rank {
+ protected:
+  size_t value;  ///< Rank value
+
+ public:
+  explicit Rank(size_t value) : value(value){};
+  [[nodiscard]] operator size_t() const { return value; }
+};
+
+Rank operator"" _r(unsigned long long int n) { return Rank(n); }
+
+class Square {
+ public:
+  const File file;  ///< Square file
+  const Rank rank;  ///< Square rank
+
+  explicit Square(File file, Rank rank) : file(file), rank(rank) {}
+  [[nodiscard]] operator File() { return file; }
+  [[nodiscard]] operator Rank() { return rank; }
+};
+
+/**
+ * Comma operator for creating a Square object.
+ *
+ * This can be useful for code like this:
+ *
+ *      File f(1);
+ *      Rank r(2);
+ *      Square sq = (f, r);
+ *
+ * The comma operator has the lowest precedence, there are also some compiler checks disallowing
+ * pure comma lists, so you have to
+ *
+ *
+ * @param file
+ * @param rank
+ * @return
+ */
+Square operator,(File file, Rank rank) { return Square(file, rank); }
+
+/**
+ * A function for calculating the position in an array for the (file, rank) coordinates.
+ *
+ * @param file Square file to get the position for.
+ * @param rank Square rank to get the position for.
+ * @param max_files Maximum number of files for the bitboard.
+ * @return Array index for the square(file, rank).
+ */
+[[nodiscard]] constexpr size_t coordinates_to_index(size_t file, size_t rank, size_t max_files) {
+  return rank * max_files + file;
+}
+
+/**
+ * A generic bitboard representation.
+ *
+ * The main idea is to have a bit for each board field.
+ *
+ * This implementation is based on the std::bitboard. As a result the memory used for storing an MxN
+ * bitboard is MxN rounded to the smallest multiple of `sizeof(unsigned long)`.
+ *
+ * The API is heavily inspired by the bitset
+ * https://www.cplusplus.com/reference/bitset/bitset/
+ *
+ * The main differences are:
+ *  - the operator [] is used only for the double bracket version like bitboard[File(1)][Rank(2)]
+ *  - functions check the range only when the bitboard is created with the `always_check_range_`
+ * param
+ *  - the only function always checking the range is `test`
+ *  - there is no function getting only size_t params, all the functions require either File, Rank
+ * or Square param
+ *
+ *
+ * @tparam files_ Number of the files for the bitboard.
+ * @tparam ranks_ Number of the ranks for the bitboard
+ * @tparam always_check_range_ If true, all the access functions always check the range, if it's
+ * false, only the `test` function checks.
+ */
+
+template <size_t files_, size_t ranks_, bool always_check_range_ = true>
 class bitboard {
  private:
   std::bitset<files_ * ranks_> fields;
+
+  /**
+   * A helper function to calculate the array index for the (file, rank) field.
+   *
+   * This is the only place where we check if the file and rank values are not too large and only
+   * if the argument `always_check_range_` is set to true.
+   *
+   * @param file Square file to get the position for.
+   * @param rank Square rank to get the position for.
+   * @return Array index for the square(file, rank).
+   */
+  [[nodiscard]] size_t make_index(File file, Rank rank) const noexcept(!always_check_range_) {
+    auto pos = coordinates_to_index(file, rank, files_);
+
+    if constexpr (always_check_range_) {
+      if (file >= files_) {
+        throw std::out_of_range("Requested file is too large.");
+      }
+      if (rank >= ranks_) {
+        throw std::out_of_range("Requested rank is too large.");
+      }
+    }
+
+    return pos;
+  }
+
+ public:
+  bitboard() = default;
+  ~bitboard() = default;
+
+  constexpr bitboard(unsigned long long value) noexcept : fields(value) {}
+
+  /**
+   * Returns the number of the ranks of the bitboard.
+   */
+  [[nodiscard]] constexpr auto ranks() const { return ranks_; }
+
+  /**
+   * Returns the number of the files of the bitboard.
+   */
+  [[nodiscard]] constexpr auto files() const { return files_; }
+
+  [[nodiscard]] constexpr auto always_check_range() const { return always_check_range_; }
+
+  [[nodiscard]] size_t size() const { return fields.size(); }
+
+  [[nodiscard]] size_t capacity() const { return sizeof(fields) * 8; }
+
+  /**
+   * Sets all the fields of the bitboard to true.
+   *
+   * @return
+   */
+  bitboard& set() noexcept {
+    fields.set();
+    return *this;
+  }
+
+  bitboard& set(File file, Rank rank, bool value = true) noexcept(!always_check_range_) {
+    auto index = make_index(file, rank);
+    fields[index] = value;
+    return *this;
+  }
+
+  bitboard& set(Square square, bool value = true) noexcept(!always_check_range_) {
+    return set(square, square, value);
+  }
+
+  bitboard& reset() noexcept {
+    fields.reset();
+    return *this;
+  }
+
+  bitboard& reset(File file, Rank rank) noexcept(!always_check_range_) {
+    auto index = make_index(file, rank);
+    fields[index] = false;
+    return *this;
+  }
+
+  bitboard& reset(Square square, bool value = true) noexcept(!always_check_range_) {
+    return reset(square, square, value);
+  }
+
+  [[nodiscard]] bool get(File file, Rank rank) const noexcept(!always_check_range_) {
+    auto index = make_index(file, rank);
+    return fields[index];
+  }
+
+  [[nodiscard]] bool get(Square square) const noexcept(!always_check_range_) {
+    return get(square, square);
+  }
+
+  // bool all() const noexcept;
+  // bool any() const noexcept;
+  // bool none() const noexcept;
+  // operator[]
+  // size
+  // test
+  // to_ulong
+  // to_ullong
+
+  /*
+bitset& operator&= (const bitset& rhs) noexcept;
+bitset& operator|= (const bitset& rhs) noexcept;
+bitset& operator^= (const bitset& rhs) noexcept;
+bitset& operator<<= (size_t pos) noexcept;
+bitset& operator>>= (size_t pos) noexcept;
+bitset operator~() const noexcept;
+bitset operator<<(size_t pos) const noexcept;
+bitset operator>>(size_t pos) const noexcept;
+bool operator== (const bitset& rhs) const noexcept;
+bool operator!= (const bitset& rhs) const noexcept;
+
+template<size_t N>
+  bitset<N> operator& (const bitset<N>& lhs, const bitset<N>& rhs) noexcept;
+template<size_t N>
+  bitset<N> operator| (const bitset<N>& lhs, const bitset<N>& rhs) noexcept;
+template<size_t N>
+  bitset<N> operator^ (const bitset<N>& lhs, const bitset<N>& rhs) noexcept;
+
+template<class charT, class traits, size_t N>
+  basic_istream<charT, traits>&
+    operator>> (basic_istream<charT,traits>& is, bitset<N>& rhs);
+template<class charT, class traits, size_t N>
+  basic_ostream<charT, traits>&
+    operator<< (basic_ostream<charT,traits>& os, const bitset<N>& rhs);
+   */
+
+  [[nodiscard]] std::string to_string(char empty_character = '-',
+                                      char set_character = 'x') const noexcept {
+    std::basic_string x = fields.to_string(empty_character, set_character);
+    return x;
+  }
 };
 
-}
+}  // namespace slchess

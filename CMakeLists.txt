@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
 # -------------------------------------------------------------------
 # Set version.
@@ -32,7 +32,6 @@ if (ENABLE_CCACHE)
   endif ()
 endif ()
 # ---------------------------------------------------------
-
 
 # -------------------------------------------------------------------
 # Set basic directories names.
@@ -99,13 +98,13 @@ endif ()
 option(ENABLE_CLANG_TIDY "Enable testing with clang-tidy" ON)
 
 find_program(CLANGTIDY clang-tidy)
-if(ENABLE_CLANG_TIDY)
-  if(CLANGTIDY)
+if (ENABLE_CLANG_TIDY)
+  if (CLANGTIDY)
     set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY})
-  else()
+  else ()
     message(SEND_ERROR "clang-tidy requested but executable not found")
-  endif()
-endif()
+  endif ()
+endif ()
 # ---------------------------------------------------------
 
 # -------------------------------------------------------------------
@@ -138,6 +137,11 @@ conan_cmake_run(
 )
 # -------------------------------------------------------------------
 
+set(
+  COMPILER_FLAGS
+  -Werror -Wall -Wextra
+  -pedantic-errors
+)
 
 # -------------------------------------------------------------------
 # Add subdirectories.

@@ -1,4 +1,3 @@
 #!/bin/bash
 
-make
-bin/slchess-tests
+make && bin/slchess-tests
