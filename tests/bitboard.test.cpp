@@ -53,17 +53,14 @@ struct params {
     cond;                    \
   } while ((void)0, 0)
 
-#define CHECK_MESSAGE_FALSE(cond, msg) CHECK_MSG(CHECK_FALSE(cond), msg)
-
-#define CHECK_BB_FALSE(cond)                                                                   \
-  CHECK_MESSAGE_FALSE(cond,                                                                    \
-                      "bitboard<" << files_ << "x" << ranks_ << "> failed for field [" << file \
-                                  << ";" << rank << "]");
-
 #define CHECK_BB(cond, bb, file, rank)                                                       \
   CHECK_MSG(cond,                                                                            \
             "bitboard<" << bb.files() << "x" << bb.ranks() << "> failed for field [" << file \
                         << ";" << rank << "]");
+
+#define CHECK_BB_FALSE(cond, bb, file, rank) CHECK_BB(CHECK_FALSE(cond), bb, file, rank)
+
+#define CHECK_BB_TRUE(cond, bb, file, rank) CHECK_BB(CHECK(cond), bb, file, rank)
 
 #define CHECK_BB_THROWS(cond, exception, matcher, bb, file, rank) \
   CHECK_BB(CHECK_THROWS_AS(cond, exception), bb, file, rank);     \
@@ -78,7 +75,7 @@ void test_all_fields_are_empty_on_create() {
   // check if all bits are set to zero
   for (size_t file = 0; file < bb.files(); file++) {
     for (size_t rank = 0; rank < bb.ranks(); rank++) {
-      CHECK_BB_FALSE(bb.get(File(file), Rank(rank)));
+      CHECK_BB_FALSE(bb.get(File(file), Rank(rank)), bb, file, rank);
     }
   }
 }
@@ -111,20 +108,18 @@ void check_getting_too_large_field_coordinates() {
 }
 
 template <size_t files_, size_t ranks_, bool always_check_range_>
-void test_basic_operations() {
-  bitboard<files_, ranks_, always_check_range_> bb;
-
+void test_setting_too_large_bit() {
   // for setter we have the problem that the setting too large bit can write some more memory
   // than allocated for the bitboard, so let's check just the allocated parts
+
+  bitboard<files_, ranks_, always_check_range_> bb;
+
   if (!bb.always_check_range() && bb.size() < bb.capacity()) {
     auto file = File(bb.files());
     auto rank = Rank(bb.ranks() - 1);
     bb.set(file, rank);
-    auto x = bb.get(file, rank);
+    CHECK_BB_TRUE(bb.get(file, rank), bb, file, rank);
   }
-
-  //    bb.set(file, rank);
-  //    CHECK(bb.get(File(file), Rank(rank)));
 }
 
 TEST_CASE("test_bitboard", "[bitboard]") {
@@ -146,6 +141,6 @@ TEST_CASE("test_bitboard", "[bitboard]") {
   SECTION("check basic operations") {
     run_tests(test_all_fields_are_empty_on_create);
     run_tests(check_getting_too_large_field_coordinates);
-    run_tests(test_basic_operations);
+    run_tests(test_setting_too_large_bit);
   }
 }
