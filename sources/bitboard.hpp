@@ -318,12 +318,24 @@ class bitboard {
    */
   [[nodiscard]] bool test(Square square) const { return test(square, square); }
 
-  // bool all() const noexcept;
-  // bool any() const noexcept;
-  // bool none() const noexcept;
-  // operator[]
-  // size
-  // test
+  /**
+   * Class to support [][] operator for the bitboard.
+   */
+  class Proxy {
+   private:
+    bitboard& bb;
+    File file;
+
+   public:
+    Proxy(bitboard& bitboard, File file) : bb(bitboard), file(file) {}
+    bool operator[](Rank rank) const { return bb.get(file, rank); };
+  };
+
+  /**
+   * Operator for the double [][] to access the board fields.
+   */
+  Proxy operator[](File file) { return Proxy(*this, file); }
+
   // to_ulong
   // to_ullong
 

@@ -229,6 +229,8 @@ void check_getting_too_large_field_coordinates() {
 
     check_throws(bb.reset(file, rank), bb, file, rank);
     check_throws(bb.reset(Square(file, rank)), bb, file, rank);
+
+    check_throws(bb[file][rank], bb, file, rank);
   }
 }
 
@@ -380,6 +382,29 @@ void check_set_function() {
 }
 
 template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_bracket_operator() {
+  bitboard<files_, ranks_, always_check_range_> bb;
+
+  CHECK_FALSE(bb[File(1)][Rank(0)]);
+  CHECK_FALSE(bb[File(0)][Rank(0)]);
+
+  bb.set(File(1), Rank(0));
+
+  CHECK(bb[File(1)][Rank(0)]);
+  CHECK_FALSE(bb[File(0)][Rank(0)]);
+
+  bb.reset();
+
+  CHECK_FALSE(bb[File(1)][Rank(0)]);
+  CHECK_FALSE(bb[File(0)][Rank(0)]);
+
+  bb.set();
+
+  CHECK(bb[File(1)][Rank(0)]);
+  CHECK(bb[File(0)][Rank(0)]);
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
 void check_all_function() {
   bitboard<files_, ranks_, always_check_range_> bb;
 
@@ -429,6 +454,10 @@ void check_reset_all_function() {
   bitboard<files_, ranks_, always_check_range_> bb;
 
   bb.set();
+  CHECK(bb.all() == true);
+
+  bb.reset();
+  CHECK(bb.none() == true);
 }
 
 template <size_t files_, size_t ranks_, bool always_check_range_>
@@ -494,6 +523,8 @@ TEST_CASE("test_bitboard", "[bitboard]") {
     run_tests(check_set_function);
     run_tests(check_reset_function);
     run_tests(check_test_function);
+    run_tests(check_reset_all_function);
+    run_tests(check_bracket_operator);
   }
 
   SECTION("check information functions") {
