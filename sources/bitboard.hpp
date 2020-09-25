@@ -37,7 +37,7 @@ class File {
  * Operator for custom literals like: `12_f`.
  *
  * @param n File value.
- * @return A File object.
+ * @return A new File object.
  */
 File operator"" _f(unsigned long long int n) { return File(n); }
 
@@ -149,10 +149,26 @@ class bitboard {
     return pos;
   }
 
+ protected:
+  /**
+   * This is a little bit dangerous function. It returns a reference to the internal fields
+   * variable.
+   *
+   * This is created to be used only in tests to be sure that some operations really modified
+   * appropriate bits. To use it, create a class inheriting from the `bitboard` and then you will
+   * have the access to the function.
+   */
+  [[maybe_unused]] auto get_fields() { return &fields; }
+
  public:
   bitboard() = default;
   ~bitboard() = default;
 
+  /**
+   * Constructor converting an unsigned variable to the bitboard.
+   *
+   * @param value Value to convert to the bitboard.
+   */
   constexpr bitboard(unsigned long long value) noexcept : fields(value) {}
 
   /**
@@ -165,10 +181,30 @@ class bitboard {
    */
   [[nodiscard]] constexpr auto files() const { return files_; }
 
+  /**
+   * Returns the value for the template argument `always_check_range_`.
+   */
   [[nodiscard]] constexpr auto always_check_range() const { return always_check_range_; }
 
+  /**
+   * Returns the number of bits available for the whole board. Basically it's ranks_ * files_.
+   */
   [[nodiscard]] size_t size() const { return fields.size(); }
 
+  /**
+   * Returns theoretical maximum number of bits available for the allocated memory.
+   *
+   * Currently the implementation is using the std::bitset, which uses an array of `unsigned long`
+   * (the size on my machine is 8B) for the internal bits representation.
+   * For bitset<4> it will use whole `unsigned long` variable. This way the `size()=4` but the
+   * `capacity()=64`. As the size of the `std::bitset` is exactly the size of the internal array,
+   * I can just use `sizeof(std::bitset<4>) * 8` to get the number of available bits.
+   *
+   * This is extremely useful for testing the bitboard with `always_check_range_=false`.
+   * When I have e.g. `bitboard<3,3>` with just 9 bits, there are 8 bytes allocated, so I can set
+   * any bit in the range of 0 to 63 and it's memory safe as it won't change any other variable
+   * in the memory.
+   */
   [[nodiscard]] size_t capacity() const { return sizeof(fields) * 8; }
 
   /**
@@ -181,16 +217,36 @@ class bitboard {
     return *this;
   }
 
+  /**
+   * Sets the given field to the required value.
+   *
+   * @param file Field file to set to the required value.
+   * @param rank  Field rank to set to the required value.
+   * @param value The value to set
+   * @return Reference to the bitboard object.
+   */
   bitboard& set(File file, Rank rank, bool value = true) noexcept(!always_check_range_) {
     auto index = make_index(file, rank);
     fields[index] = value;
     return *this;
   }
 
+  /**
+   * Sets the given field to the required value.
+   *
+   * @param square Square to set to the required value.
+   * @param value The value to set
+   * @return Reference to the bitboard object.
+   */
   bitboard& set(Square square, bool value = true) noexcept(!always_check_range_) {
     return set(square, square, value);
   }
 
+  /**
+   * Sets all the fields to false.
+   *
+   * @return Reference to the bitboard object.
+   */
   bitboard& reset() noexcept {
     fields.reset();
     return *this;
@@ -202,8 +258,8 @@ class bitboard {
     return *this;
   }
 
-  bitboard& reset(Square square, bool value = true) noexcept(!always_check_range_) {
-    return reset(square, square, value);
+  bitboard& reset(Square square) noexcept(!always_check_range_) {
+    return reset(square, square);
   }
 
   [[nodiscard]] bool get(File file, Rank rank) const noexcept(!always_check_range_) {
@@ -251,6 +307,15 @@ template<class charT, class traits, size_t N>
     operator<< (basic_ostream<charT,traits>& os, const bitset<N>& rhs);
    */
 
+  /**
+   * Converts the bitboard to a string.
+   *
+   * Internally it uses directly the `std::bitset::to_string`.
+   *
+   * @param empty_character Character to be used when a field is empty.
+   * @param set_character Character to be used when a field is set.
+   * @return String with bitboard representation.
+   */
   [[nodiscard]] std::string to_string(char empty_character = '-',
                                       char set_character = 'x') const noexcept {
     std::basic_string x = fields.to_string(empty_character, set_character);

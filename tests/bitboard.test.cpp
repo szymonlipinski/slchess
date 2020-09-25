@@ -23,6 +23,141 @@
 
 using namespace slchess;
 
+struct params {
+  const size_t files;
+  const size_t ranks;
+  const bool always_check_range;
+};
+
+#define CHECK_MSG(cond, msg) \
+  do {                       \
+    INFO(msg);               \
+    cond;                    \
+  } while ((void)0, 0)
+
+#define CHECK_MSG_TRUE(cond, msg) CHECK_MSG(CHECK(cond), msg)
+
+#define CHECK_BB(cond, bb, file, rank)                                                       \
+  CHECK_MSG(cond,                                                                            \
+            "bitboard<" << bb.files() << "x" << bb.ranks() << "> failed for field [" << file \
+                        << ";" << rank << "]");
+
+#define CHECK_BB_FALSE(cond, bb, file, rank) CHECK_BB(CHECK_FALSE(cond), bb, file, rank)
+
+#define CHECK_BB_TRUE(cond, bb, file, rank) CHECK_BB(CHECK(cond), bb, file, rank)
+
+#define CHECK_BB_THROWS(cond, exception, matcher, bb, file, rank) \
+  CHECK_BB(CHECK_THROWS_AS(cond, exception), bb, file, rank);     \
+  CHECK_BB(CHECK_THROWS_WITH(cond, matcher), bb, file, rank);
+
+#define CHECK_BB_NOTHROW(cond, bb, file, rank) CHECK_BB(CHECK_NOTHROW(cond), bb, file, rank)
+
+TEST_CASE("check file and rank", "[file, rank]") {
+  SECTION("check file and rank constructor and conversion to size_t") {
+    const int MAX_RAND = 120;
+    const int MAX_ROUNDS = 100;
+
+    for (int _ = 0; _ < MAX_ROUNDS; ++_) {
+      size_t n = rand() % MAX_RAND;
+
+      File file(n);
+      Rank rank(n);
+
+      // check the size of the File
+      CHECK_MSG_TRUE(sizeof(file) == sizeof(size_t),
+                     "The size of File should be the same as the size_t, got sizeof(file)="
+                         << sizeof(file) << " while sizeof(size_t)==" << sizeof(size_t)
+                         << " for number=" << n);
+
+      // check the size of the Rank
+      CHECK_MSG_TRUE(sizeof(rank) == sizeof(size_t),
+                     "The size of Rank should be the same as the size_t, got sizeof(rank)="
+                         << sizeof(rank) << " while sizeof(size_t)==" << sizeof(size_t)
+                         << " for number=" << n);
+
+      // check automatic conversion of File to size_t
+      CHECK_MSG_TRUE(file == n,
+                     "The value of the File(n) should be n when converted to size_t. Got "
+                         << file << " while the n==" << n;);
+
+      // check automatic conversion of Rank to size_t
+      CHECK_MSG_TRUE(rank == n,
+                     "The value of the Rank(n) should be n when converted to size_t. Got "
+                         << rank << " while the n==" << n;);
+    }
+  }
+
+  SECTION("check the literal operator") {
+    CHECK(File(0) == 0_f);
+    CHECK(File(10) == 10_f);
+    CHECK(Rank(0) == 0_r);
+    CHECK(Rank(12) == 12_r);
+  }
+}
+
+TEST_CASE("check square", "[square]") {
+  SECTION("check square constructor and converting to File and Rank") {
+    const int MAX_RAND = 120;
+    const int MAX_ROUNDS = 100;
+
+    for (int _ = 0; _ < MAX_ROUNDS; ++_) {
+      size_t f = rand() % MAX_RAND;
+      size_t r = rand() % MAX_RAND;
+
+      File file(f);
+      Rank rank(r);
+      Square square(file, rank);
+
+      // check the size of the Square
+      CHECK_MSG_TRUE(sizeof(square) == 2 * sizeof(size_t),
+                     "The size of Square should be twice the size_t, got sizeof(square)="
+                         << sizeof(square) << " while sizeof(size_t)==" << sizeof(size_t));
+
+      auto casted_file = static_cast<File>(square);
+      // check automatic conversion of Square to File
+      CHECK_MSG_TRUE(
+          static_cast<File>(square) == file,
+          "The value of the Square(file, rank) when converted to File, should give File. Got "
+              << casted_file << " while the File==" << file;);
+
+      auto casted_rank = static_cast<Rank>(square);
+      // check automatic conversion of Square to Rank
+      CHECK_MSG_TRUE(
+          static_cast<Rank>(square) == rank,
+          "The value of the Square(file, rank) when converted to Rank, should give Rank. Got "
+              << casted_rank << " while the Rank==" << rank;);
+    }
+  }
+
+  SECTION("check the comma operator") {
+    const int MAX_RAND = 120;
+    const int MAX_ROUNDS = 100;
+
+    for (int _ = 0; _ < MAX_ROUNDS; ++_) {
+      size_t f = rand() % MAX_RAND;
+      size_t r = rand() % MAX_RAND;
+
+      File file(f);
+      Rank rank(r);
+      Square square = (file, rank);
+
+      auto casted_file = static_cast<File>(square);
+      // check automatic conversion of Square to File
+      CHECK_MSG_TRUE(
+          static_cast<File>(square) == file,
+          "The value of the Square(file, rank) when converted to File, should give File. Got "
+              << casted_file << " while the File==" << file;);
+
+      auto casted_rank = static_cast<Rank>(square);
+      // check automatic conversion of Square to Rank
+      CHECK_MSG_TRUE(
+          static_cast<Rank>(square) == rank,
+          "The value of the Square(file, rank) when converted to Rank, should give Rank. Got "
+              << casted_rank << " while the Rank==" << rank;);
+    }
+  }
+}
+
 TEST_CASE("check_bitboard_size", "[bitboard]") {
   // ensure that there is no accidental size change
 
@@ -40,33 +175,6 @@ TEST_CASE("check_bitboard_size", "[bitboard]") {
   bitboard<10, 10> bb10x10;
   CHECK(sizeof(bb10x10) == 2 * word_size);
 }
-
-struct params {
-  const size_t files;
-  const size_t ranks;
-  const bool always_check_range;
-};
-
-#define CHECK_MSG(cond, msg) \
-  do {                       \
-    INFO(msg);               \
-    cond;                    \
-  } while ((void)0, 0)
-
-#define CHECK_BB(cond, bb, file, rank)                                                       \
-  CHECK_MSG(cond,                                                                            \
-            "bitboard<" << bb.files() << "x" << bb.ranks() << "> failed for field [" << file \
-                        << ";" << rank << "]");
-
-#define CHECK_BB_FALSE(cond, bb, file, rank) CHECK_BB(CHECK_FALSE(cond), bb, file, rank)
-
-#define CHECK_BB_TRUE(cond, bb, file, rank) CHECK_BB(CHECK(cond), bb, file, rank)
-
-#define CHECK_BB_THROWS(cond, exception, matcher, bb, file, rank) \
-  CHECK_BB(CHECK_THROWS_AS(cond, exception), bb, file, rank);     \
-  CHECK_BB(CHECK_THROWS_WITH(cond, matcher), bb, file, rank);
-
-#define CHECK_BB_NOTHROW(cond, bb, file, rank) CHECK_BB(CHECK_NOTHROW(cond), bb, file, rank)
 
 template <size_t files_, size_t ranks_, bool always_check_range_>
 void test_all_fields_are_empty_on_create() {
@@ -93,17 +201,34 @@ void check_getting_too_large_field_coordinates() {
     auto file = File(rand() % MAX_RAND);
     auto rank = Rank(rand() % MAX_RAND);
 
-    if (bb.always_check_range()) {
-      if (file >= bb.files()) {  // we have too large file number
-        CHECK_BB_THROWS(
-            bb.set(file, rank), std::out_of_range&, "Requested file is too large.", bb, file, rank);
-      } else if (rank >= bb.ranks()) {  // we have too large file number
-        CHECK_BB_THROWS(
-            bb.set(file, rank), std::out_of_range&, "Requested rank is too large.", bb, file, rank);
-      } else {
-        CHECK_BB_NOTHROW(bb.set(file, rank), bb, file, rank);
-      }
-    }
+    // a couple of constants for simpler code
+    bool file_too_large = file >= bb.files();
+    bool rank_too_large = rank >= bb.ranks();
+    bool expecting_throw = bb.always_check_range() && (file_too_large || rank_too_large);
+
+#define check_throws(func_call, bb, file, rank)                                             \
+  {                                                                                         \
+    if (expecting_throw) {                                                                  \
+      if (file_too_large) {                                                                 \
+        CHECK_BB_THROWS(                                                                    \
+            func_call, std::out_of_range&, "Requested file is too large.", bb, file, rank); \
+      } else if (rank_too_large) {                                                          \
+        CHECK_BB_THROWS(                                                                    \
+            func_call, std::out_of_range&, "Requested rank is too large.", bb, file, rank); \
+      }                                                                                     \
+    } else {                                                                                \
+      CHECK_BB_NOTHROW(func_call, bb, file, rank);                                          \
+    }                                                                                       \
+  }
+
+    check_throws(bb.get(file, rank), bb, file, rank);
+    check_throws(bb.get(Square(file, rank)), bb, file, rank);
+
+    check_throws(bb.set(file, rank), bb, file, rank);
+    check_throws(bb.set(Square(file, rank)), bb, file, rank);
+
+    check_throws(bb.reset(file, rank), bb, file, rank);
+    check_throws(bb.reset(Square(file, rank)), bb, file, rank);
   }
 }
 
@@ -120,6 +245,17 @@ void test_setting_too_large_bit() {
     bb.set(file, rank);
     CHECK_BB_TRUE(bb.get(file, rank), bb, file, rank);
   }
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_basic_info_getters() {
+  bitboard<files_, ranks_, always_check_range_> bb;
+
+  CHECK(bb.ranks() == ranks_);
+  CHECK(bb.files() == files_);
+  CHECK(bb.always_check_range() == always_check_range_);
+  CHECK(bb.size() == ranks_ * files_);
+  CHECK(bb.capacity() == sizeof(bb) * 8);
 }
 
 TEST_CASE("test_bitboard", "[bitboard]") {
@@ -139,7 +275,7 @@ TEST_CASE("test_bitboard", "[bitboard]") {
   func<bb10x10_nocheck.files, bb10x10_nocheck.ranks, bb10x10_nocheck.always_check_range>();
 
   SECTION("check basic operations") {
-    run_tests(test_all_fields_are_empty_on_create);
+    run_tests(check_basic_info_getters) run_tests(test_all_fields_are_empty_on_create);
     run_tests(check_getting_too_large_field_coordinates);
     run_tests(test_setting_too_large_bit);
   }
