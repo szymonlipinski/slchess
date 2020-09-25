@@ -180,7 +180,7 @@ template <size_t files_, size_t ranks_, bool always_check_range_>
 void test_all_fields_are_empty_on_create() {
   bitboard<files_, ranks_, always_check_range_> bb;
 
-  // check if all bits are set to zero
+  // check if all bits are set to false
   for (size_t file = 0; file < bb.files(); file++) {
     for (size_t rank = 0; rank < bb.ranks(); rank++) {
       CHECK_BB_FALSE(bb.get(File(file), Rank(rank)), bb, file, rank);
@@ -292,6 +292,149 @@ void check_basic_info_getters() {
   CHECK(bb.capacity() == sizeof(bb) * 8);
 }
 
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_set_all_function() {
+  bitboard<files_, ranks_, always_check_range_> bb;
+
+  // this should set all bits to true
+  bb.set();
+
+  // check if all bits are set to true
+  for (size_t file = 0; file < bb.files(); file++) {
+    for (size_t rank = 0; rank < bb.ranks(); rank++) {
+      CHECK_BB_TRUE(bb.get(File(file), Rank(rank)), bb, file, rank);
+    }
+  }
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_set_function() {
+  {
+    bitboard<files_, ranks_, always_check_range_> bb;
+
+    auto f = 0_f;
+    auto r = 2_r;
+
+    bb.set(f, r);
+
+    // check if the only bit is set to true
+    for (size_t file = 0; file < bb.files(); file++) {
+      for (size_t rank = 0; rank < bb.ranks(); rank++) {
+        auto expected_value = (file == f && rank == r);
+        CHECK_BB_TRUE(bb.get(File(file), Rank(rank)) == expected_value, bb, file, rank);
+      }
+    }
+  }
+  // and the same for the set(square) now
+  {
+    bitboard<files_, ranks_, always_check_range_> bb;
+
+    auto f = 0_f;
+    auto r = 2_r;
+
+    bb.set(Square(f, r));
+
+    // check if the only bit is set to true
+    for (size_t file = 0; file < bb.files(); file++) {
+      for (size_t rank = 0; rank < bb.ranks(); rank++) {
+        auto expected_value = (file == f && rank == r);
+        CHECK_BB_TRUE(bb.get(File(file), Rank(rank)) == expected_value, bb, file, rank);
+      }
+    }
+  }
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_all_function() {
+  bitboard<files_, ranks_, always_check_range_> bb;
+
+  CHECK(bb.all() == false);
+
+  bb.set(File(0), Rank(1));
+  CHECK(bb.all() == false);
+
+  bb.set();
+  CHECK(bb.all() == true);
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_none_function() {
+  bitboard<files_, ranks_, always_check_range_> bb;
+
+  CHECK(bb.none() == true);
+
+  bb.set(File(0), Rank(1));
+  CHECK(bb.none() == false);
+
+  bb.set();
+  CHECK(bb.none() == false);
+
+  bb.reset();
+  CHECK(bb.none() == true);
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_any_function() {
+  bitboard<files_, ranks_, always_check_range_> bb;
+
+  CHECK(bb.any() == false);
+
+  bb.set(File(0), Rank(1));
+  CHECK(bb.any() == true);
+
+  bb.set();
+  CHECK(bb.any() == true);
+
+  bb.reset();
+  CHECK(bb.any() == false);
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_reset_all_function() {
+  bitboard<files_, ranks_, always_check_range_> bb;
+
+  bb.set();
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_reset_function() {
+  {
+    bitboard<files_, ranks_, always_check_range_> bb;
+
+    auto f = 1_f;
+    auto r = 2_r;
+
+    bb.set();
+    bb.reset(f, r);
+
+    // check if the only bit is set to true
+    for (size_t file = 0; file < bb.files(); file++) {
+      for (size_t rank = 0; rank < bb.ranks(); rank++) {
+        auto expected_value = !(file == f && rank == r);
+        CHECK_BB_TRUE(bb.get(File(file), Rank(rank)) == expected_value, bb, file, rank);
+      }
+    }
+  }
+  // and the same for the set(square) now
+  {
+    bitboard<files_, ranks_, always_check_range_> bb;
+
+    auto f = 0_f;
+    auto r = 2_r;
+
+    bb.set();
+    bb.reset(Square(f, r));
+
+    // check if the only bit is set to true
+    for (size_t file = 0; file < bb.files(); file++) {
+      for (size_t rank = 0; rank < bb.ranks(); rank++) {
+        auto expected_value = !(file == f && rank == r);
+        CHECK_BB_TRUE(bb.get(File(file), Rank(rank)) == expected_value, bb, file, rank);
+      }
+    }
+  }
+}
+
 TEST_CASE("test_bitboard", "[bitboard]") {
   static constexpr params bb2x3 = {2, 3, true};
   static constexpr params bb2x3_nocheck = {2, 3, false};
@@ -309,8 +452,40 @@ TEST_CASE("test_bitboard", "[bitboard]") {
   func<bb10x10_nocheck.files, bb10x10_nocheck.ranks, bb10x10_nocheck.always_check_range>();
 
   SECTION("check basic operations") {
-    run_tests(check_basic_info_getters) run_tests(test_all_fields_are_empty_on_create);
+    run_tests(check_basic_info_getters);
+    run_tests(test_all_fields_are_empty_on_create);
     run_tests(check_getting_too_large_field_coordinates);
     run_tests(test_setting_too_large_bit);
+    run_tests(check_set_function);
+    run_tests(check_reset_function);
+  }
+
+  SECTION("check information functions") {
+    run_tests(check_all_function);
+    run_tests(check_none_function);
+    run_tests(check_any_function);
+  }
+
+  SECTION("check to_string") {
+    bitboard<2, 3> bb;
+    CHECK(bb.to_string() == "------");
+
+    bb.set(File(0), Rank(0));
+    CHECK(bb.to_string() == "-----x");
+
+    bb.set(File(0), Rank(2));
+    bb.set(File(0), Rank(0), false);
+    CHECK(bb.to_string() == "-x----");
+  }
+
+  SECTION("check to_string() with no range check") {
+    bitboard<2, 3, false> bb;
+    CHECK(bb.to_string() == "------");
+
+    bb.set(File(0), Rank(0));
+    CHECK(bb.to_string() == "-----x");
+
+    bb.set(File(5), Rank(5));
+    CHECK(bb.to_string() == "-----x");
   }
 }

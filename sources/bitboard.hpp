@@ -252,21 +252,46 @@ class bitboard {
     return *this;
   }
 
+  /**
+   * Sets the given field to false.
+   *
+   * @param file Field file to set to the required value.
+   * @param rank  Field rank to set to the required value.
+   * @return Reference to the bitboard object.
+   */
   bitboard& reset(File file, Rank rank) noexcept(!always_check_range_) {
     auto index = make_index(file, rank);
     fields[index] = false;
     return *this;
   }
 
-  bitboard& reset(Square square) noexcept(!always_check_range_) {
-    return reset(square, square);
-  }
+  /**
+   * Sets the given field to false.
+   *
+   * @param square Square to set to the required value.
+   * @param value The value to set
+   * @return Reference to the bitboard object.
+   */
+  bitboard& reset(Square square) noexcept(!always_check_range_) { return reset(square, square); }
 
+  /**
+   * Gets the value of the given field.
+   *
+   * @param file Field file to set to the required value.
+   * @param rank  Field rank to set to the required value.
+   * @return Value for the field.
+   */
   [[nodiscard]] bool get(File file, Rank rank) const noexcept(!always_check_range_) {
     auto index = make_index(file, rank);
     return fields[index];
   }
 
+  /**
+   * Gets the value of the given field.
+   *
+   * @param square Square to set to the required value.
+   * @return Value for the field.
+   */
   [[nodiscard]] bool get(Square square) const noexcept(!always_check_range_) {
     return get(square, square);
   }
@@ -321,6 +346,27 @@ template<class charT, class traits, size_t N>
     std::basic_string x = fields.to_string(empty_character, set_character);
     return x;
   }
+
+  /**
+   * Returns true if all fields are set.
+   *
+   * @return True if all fields are set, false otherwise.
+   */
+  [[nodiscard]] bool all() { return fields.all(); }
+
+  /**
+   * Returns true if any of the fields are set.
+   *
+   * @return True if any of the fields are set, false otherwise.
+   */
+  [[nodiscard]] bool none() { return fields.none(); }
+
+  /**
+   * Returns true if none of the fields are set.
+   *
+   * @return True if none of the fields are set, false otherwise.
+   */
+  [[nodiscard]] bool any() { return fields.any(); }
 };
 
 }  // namespace slchess
