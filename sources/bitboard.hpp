@@ -130,23 +130,27 @@ class bitboard {
    * This is the only place where we check if the file and rank values are not too large and only
    * if the argument `always_check_range_` is set to true.
    *
-   * @param file Square file to get the position for.
-   * @param rank Square rank to get the position for.
+   * @param file square file to get the position for.
+   * @param rank square rank to get the position for.
    * @return Array index for the square(file, rank).
    */
   [[nodiscard]] size_t make_index(File file, Rank rank) const noexcept(!always_check_range_) {
     auto pos = coordinates_to_index(file, rank, files_);
 
     if constexpr (always_check_range_) {
-      if (file >= files_) {
-        throw std::out_of_range("Requested file is too large.");
-      }
-      if (rank >= ranks_) {
-        throw std::out_of_range("Requested rank is too large.");
-      }
+      assert_field_coordinates(file, rank);
     }
 
     return pos;
+  }
+
+  void assert_field_coordinates(File file, Rank rank) const {
+    if (file >= files_) {
+      throw std::out_of_range("Requested file is too large.");
+    }
+    if (rank >= ranks_) {
+      throw std::out_of_range("Requested rank is too large.");
+    }
   }
 
  protected:
@@ -295,6 +299,24 @@ class bitboard {
   [[nodiscard]] bool get(Square square) const noexcept(!always_check_range_) {
     return get(square, square);
   }
+  /**
+   * This is the only function here, which always checks the coordinates range,
+   * regardless the `always_check_range_` value.
+   *
+   * @param file
+   * @param rank
+   * @return
+   */
+  [[nodiscard]] bool test(File file, Rank rank) const {
+    auto pos = coordinates_to_index(file, rank, files_);
+    assert_field_coordinates(file, rank);
+    return fields[pos];
+  }
+
+  /**
+   * @see{test}
+   */
+  [[nodiscard]] bool test(Square square) const { return test(square, square); }
 
   // bool all() const noexcept;
   // bool any() const noexcept;
@@ -352,21 +374,21 @@ template<class charT, class traits, size_t N>
    *
    * @return True if all fields are set, false otherwise.
    */
-  [[nodiscard]] bool all() { return fields.all(); }
+  [[nodiscard]] bool all() const noexcept { return fields.all(); }
 
   /**
    * Returns true if any of the fields are set.
    *
    * @return True if any of the fields are set, false otherwise.
    */
-  [[nodiscard]] bool none() { return fields.none(); }
+  [[nodiscard]] bool none() const noexcept { return fields.none(); }
 
   /**
    * Returns true if none of the fields are set.
    *
    * @return True if none of the fields are set, false otherwise.
    */
-  [[nodiscard]] bool any() { return fields.any(); }
+  [[nodiscard]] bool any() const noexcept { return fields.any(); }
 };
 
 }  // namespace slchess

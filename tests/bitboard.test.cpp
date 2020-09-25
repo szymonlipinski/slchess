@@ -293,6 +293,41 @@ void check_basic_info_getters() {
 }
 
 template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_test_function() {
+  // this should always throw exception, regardless the `always_check_range_` argument.
+
+  bitboard<files_, ranks_, always_check_range_> bb;
+  const int MAX_RAND = 120;
+  const int MAX_ROUNDS = 100;
+
+  for (int _ = 0; _ < MAX_ROUNDS; ++_) {
+    auto file = File(rand() % MAX_RAND);
+    auto rank = Rank(rand() % MAX_RAND);
+    auto square = (file, rank);
+
+    // a couple of constants for simpler code
+    bool file_too_large = file >= bb.files();
+    bool rank_too_large = rank >= bb.ranks();
+
+    if (file_too_large) {
+      CHECK_BB_THROWS(
+          bb.test(file, rank), std::out_of_range&, "Requested file is too large.", bb, file, rank);
+      CHECK_BB_THROWS(
+          bb.test(square), std::out_of_range&, "Requested file is too large.", bb, file, rank);
+
+    } else if (rank_too_large) {
+      CHECK_BB_THROWS(
+          bb.test(file, rank), std::out_of_range&, "Requested rank is too large.", bb, file, rank);
+      CHECK_BB_THROWS(
+          bb.test(square), std::out_of_range&, "Requested rank is too large.", bb, file, rank);
+    } else {
+      CHECK_BB_NOTHROW(bb.test(file, rank), bb, file, rank);
+      CHECK_BB_NOTHROW(bb.test(square), bb, file, rank);
+    }
+  }
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
 void check_set_all_function() {
   bitboard<files_, ranks_, always_check_range_> bb;
 
@@ -458,6 +493,7 @@ TEST_CASE("test_bitboard", "[bitboard]") {
     run_tests(test_setting_too_large_bit);
     run_tests(check_set_function);
     run_tests(check_reset_function);
+    run_tests(check_test_function);
   }
 
   SECTION("check information functions") {
