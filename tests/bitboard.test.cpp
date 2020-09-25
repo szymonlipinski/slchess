@@ -234,16 +234,50 @@ void check_getting_too_large_field_coordinates() {
 
 template <size_t files_, size_t ranks_, bool always_check_range_>
 void test_setting_too_large_bit() {
-  // for setter we have the problem that the setting too large bit can write some more memory
-  // than allocated for the bitboard, so let's check just the allocated parts
+  // For any setters we have the problem that the setting too large bit can write some more memory
+  // than allocated for the bitboard, so let's check just the allocated parts.
+  // For this there is the `capacity()` function which returns the real number of allocated bits.
+  //
+  // Of course, this will work only and only if the the `always_check_range_==false`.
 
   bitboard<files_, ranks_, always_check_range_> bb;
 
   if (!bb.always_check_range() && bb.size() < bb.capacity()) {
-    auto file = File(bb.files());
-    auto rank = Rank(bb.ranks() - 1);
-    bb.set(file, rank);
-    CHECK_BB_TRUE(bb.get(file, rank), bb, file, rank);
+    for (int n = -1; n < int(bb.capacity() - bb.size()); n++) {
+      auto file = File(bb.files());
+      auto rank = Rank(bb.ranks() + 1);
+
+      CHECK(coordinates_to_index(file, rank, files_) >= bb.size());
+      CHECK(coordinates_to_index(file, rank, files_) < bb.capacity());
+
+      // set|get(file, rank)
+      bb.set(file, rank);
+      CHECK_BB_TRUE(bb.get(file, rank), bb, file, rank);
+
+      bb.set(file, rank, false);
+      CHECK_BB_FALSE(bb.get(file, rank), bb, file, rank);
+
+      bb.set(file, rank);
+      CHECK_BB_TRUE(bb.get(file, rank), bb, file, rank);
+
+      bb.reset(file, rank);
+      CHECK_BB_FALSE(bb.get(file, rank), bb, file, rank);
+
+      // set|get(square)
+      Square square(file, rank);
+
+      bb.set(square);
+      CHECK_BB_TRUE(bb.get(square), bb, file, rank);
+
+      bb.set(square, false);
+      CHECK_BB_FALSE(bb.get(square), bb, file, rank);
+
+      bb.set(square);
+      CHECK_BB_TRUE(bb.get(square), bb, file, rank);
+
+      bb.reset(square);
+      CHECK_BB_FALSE(bb.get(square), bb, file, rank);
+    }
   }
 }
 
