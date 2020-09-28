@@ -143,6 +143,8 @@ set(
   -pedantic-errors
 )
 
+# -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic
+
 # -------------------------------------------------------------------
 # Add subdirectories.
 # -------------------------------------------------------------------

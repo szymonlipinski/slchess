@@ -1,6 +1,6 @@
 #include "bitboard.hpp"
 #include "catch.hpp"
-
+#include "limits.h"
 /**
  * A couple of remarks.
  *
@@ -499,6 +499,56 @@ void check_reset_function() {
   }
 }
 
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_converting_to_ulong() {
+  // When creating a bitboard from a value, we strip the value bits
+  // to the number of bits stored in the bitboard.
+  // When it's converted back, we won't have the stripped bits.
+
+  const auto MAX_RAND = ULONG_MAX;
+  const int MAX_ROUNDS = 20000;
+
+  for (int _ = 0; _ < MAX_ROUNDS; ++_) {
+    auto value = rand() / MAX_RAND;
+    bitboard<files_, ranks_, always_check_range_> bb(value);
+
+    // make a mask for clearing the bits
+    unsigned long mask = 1;
+    for (size_t i = 0; i < bb.size(); i++) {
+      mask <<= 1;
+      mask |= 1;
+    }
+    auto stripped_value = mask & value;
+    CHECK(bb.to_ulong() == stripped_value);
+    CHECK(static_cast<unsigned long>(bb) == stripped_value);
+  }
+}
+
+template <size_t files_, size_t ranks_, bool always_check_range_>
+void check_converting_to_ullong() {
+  // When creating a bitboard from a value, we strip the value bits
+  // to the number of bits stored in the bitboard.
+  // When it's converted back, we won't have the stripped bits.
+
+  const auto MAX_RAND = ULLONG_MAX;
+  const int MAX_ROUNDS = 20000;
+
+  for (int _ = 0; _ < MAX_ROUNDS; ++_) {
+    auto value = rand() / MAX_RAND;
+    bitboard<files_, ranks_, always_check_range_> bb(value);
+
+    // make a mask for clearing the bits
+    unsigned long long mask = 1;
+    for (size_t i = 0; i < bb.size(); i++) {
+      mask <<= 1;
+      mask |= 1;
+    }
+    auto stripped_value = mask & value;
+    CHECK(bb.to_ulong() == stripped_value);
+    CHECK(static_cast<unsigned long long>(bb) == stripped_value);
+  }
+}
+
 TEST_CASE("test_bitboard", "[bitboard]") {
   static constexpr params bb2x3 = {2, 3, true};
   static constexpr params bb2x3_nocheck = {2, 3, false};
@@ -506,6 +556,8 @@ TEST_CASE("test_bitboard", "[bitboard]") {
   static constexpr params bb8x8_nocheck = {8, 8, false};
   static constexpr params bb10x10 = {10, 10, true};
   static constexpr params bb10x10_nocheck = {10, 10, false};
+  static constexpr params bb1000x1000 = {1000, 1000, true};
+  static constexpr params bb1000x1000_nocheck = {1000, 1000, false};
 
 #define run_tests(func)                                                               \
   func<bb2x3.files, bb2x3.ranks, bb2x3.always_check_range>();                         \
@@ -514,6 +566,11 @@ TEST_CASE("test_bitboard", "[bitboard]") {
   func<bb2x3_nocheck.files, bb2x3_nocheck.ranks, bb2x3_nocheck.always_check_range>(); \
   func<bb8x8_nocheck.files, bb8x8_nocheck.ranks, bb8x8_nocheck.always_check_range>(); \
   func<bb10x10_nocheck.files, bb10x10_nocheck.ranks, bb10x10_nocheck.always_check_range>();
+
+#define run_huge_tests(func) \
+  // this is quite huge, tests pass, but I need to refactor this
+  // func<bb1000x1000.files, bb1000x1000.ranks, bb1000x1000.always_check_range>();
+  // func<bb1000x1000_nocheck.files, bb1000x1000_nocheck.ranks, bb1000x1000_nocheck.always_check_range>();
 
   SECTION("check basic operations") {
     run_tests(check_basic_info_getters);
@@ -554,5 +611,44 @@ TEST_CASE("test_bitboard", "[bitboard]") {
 
     bb.set(File(5), Rank(5));
     CHECK(bb.to_string() == "-----x");
+  }
+
+  SECTION("check ulong constructor") {
+    {
+      bitboard<4, 5> bb(0);
+      CHECK(bb.none());
+    }
+
+    {
+      bitboard<4, 5> bb(1);
+      CHECK(bb.to_string() == "-------------------x");
+    }
+
+    {
+      bitboard<4, 5> bb(350);
+      //
+      // 350 = 2^8 + 2^6 + 2^4 + 2^3 + 2^2 + 2^1
+      // 350 = 256 +  64 +  16 +   8 +   4 +   2
+      //
+      //                           2         1         0
+      //                           098765432109876543210
+      CHECK(bb.to_string() == "-----------x-x-xxxx-");
+    }
+
+    {
+      // in this case the number 350 should be stripped to 4 bits only
+
+      bitboard<2, 2> bb(350);
+      //
+      // 350 = 2^8 + 2^6 + 2^4 + 2^3 + 2^2 + 2^1
+      // 350 = 256 +  64 +  16 +   8 +   4 +   2
+      //
+      //                            3210
+      CHECK(bb.to_string() == "xxx-");
+    }
+  }
+  SECTION("check converting bitboard to integers") {
+    run_tests(check_converting_to_ulong);
+    run_tests(check_converting_to_ullong);
   }
 }

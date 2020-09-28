@@ -29,6 +29,9 @@ class File {
   size_t value;  ///< File value
 
  public:
+  /**
+   * Explicit constructor.
+   */
   explicit File(size_t value) : value(value){};
   [[nodiscard]] operator size_t() const { return value; }
 };
@@ -41,6 +44,17 @@ class File {
  */
 File operator"" _f(unsigned long long int n) { return File(n); }
 
+
+/**
+ * Representation of the bitboards rank.
+ *
+ * The constructor is not implicit, so you have to use `Rank(1)` for every call,
+ * as there is no implicit conversion from int.
+ *
+ * There is an automated conversion the other side, from the Rank to the size_t.
+ *
+ * There is also an operator for literals: `12_r` which created `Rank(12)`.
+ */
 class Rank {
  protected:
   size_t value;  ///< Rank value
@@ -52,13 +66,21 @@ class Rank {
 
 Rank operator"" _r(unsigned long long int n) { return Rank(n); }
 
+/**
+ * Class for a field coordinates.
+ */
 class Square {
  public:
   const File file;  ///< Square file
   const Rank rank;  ///< Square rank
 
+  /// An explicit constructor for the class.
   explicit Square(File file, Rank rank) : file(file), rank(rank) {}
+
+  /// An implicit operator for converting to the File object.
   [[nodiscard]] operator File() { return file; }
+
+  /// An implicit operator for converting to the Rank object.
   [[nodiscard]] operator Rank() { return rank; }
 };
 
@@ -75,9 +97,9 @@ class Square {
  * pure comma lists, so you have to
  *
  *
- * @param file
- * @param rank
- * @return
+ * @param file File for the square.
+ * @param rank Rank for the square.
+ * @return New Square object for the
  */
 Square operator,(File file, Rank rank) { return Square(file, rank); }
 
@@ -170,6 +192,9 @@ class bitboard {
 
   /**
    * Constructor converting an unsigned variable to the bitboard.
+   *
+   * The number is treated as a stream of bits, which are inserted into the underlying bitset
+   * one by one. Only the `files_ * ranks_` bits are used from the number.
    *
    * @param value Value to convert to the bitboard.
    */
@@ -336,8 +361,33 @@ class bitboard {
    */
   Proxy operator[](File file) { return Proxy(*this, file); }
 
-  // to_ulong
-  // to_ullong
+  /**
+   * Converts the bitboard bits to the unsigned long long.
+   */
+  [[nodiscard]] unsigned long long to_ullong() const noexcept { return fields.to_ullong(); }
+
+  /**
+   * Operator for converting the bitboard bits to the unsigned long long.
+   */
+  [[nodiscard]] explicit operator unsigned long long() const noexcept { return to_ullong(); }
+
+  /**
+   * Operator for converting the bitboard bits to the unsigned long.
+   */
+  [[nodiscard]] explicit operator unsigned long() const noexcept { return to_ullong(); }
+
+  /**
+   * Converts the bitboard bits to the unsigned long.
+   */
+  [[nodiscard]] unsigned long to_ulong() const noexcept { return fields.to_ulong(); }
+
+  /*
+
+   convert one bitboard to another
+
+   add a nice to_board_string
+
+   */
 
   /*
 bitset& operator&= (const bitset& rhs) noexcept;
