@@ -14,7 +14,7 @@ target_link_libraries(${TARGET_NAME} ${LIBRARY_NAME})
 
 target_include_directories(
   ${TARGET_NAME}
-  PUBLIC ${CMAKE_BINARY_DIR}/sources
+  PUBLIC ${CMAKE_SOURCE_DIR}/sources
 )
 
 add_test(

@@ -7,7 +7,6 @@ set(
 )
 
 
-
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})
 
 target_compile_options(${LIBRARY_NAME} PUBLIC ${COMPILER_FLAGS})
