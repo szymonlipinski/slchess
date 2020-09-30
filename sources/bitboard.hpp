@@ -78,10 +78,10 @@ class Square {
   explicit Square(File file, Rank rank) : file(file), rank(rank) {}
 
   /// An implicit operator for converting to the File object.
-  [[nodiscard]] operator File() { return file; }
+  [[nodiscard]] operator File() const { return file; }
 
   /// An implicit operator for converting to the Rank object.
-  [[nodiscard]] operator Rank() { return rank; }
+  [[nodiscard]] operator Rank() const { return rank; }
 };
 
 /**
